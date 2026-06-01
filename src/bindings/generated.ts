@@ -69,6 +69,14 @@ async getEngineLogs(engine: string, tab: string) : Promise<Result<EngineLog[], s
     else return { status: "error", error: e  as any };
 }
 },
+async getBookMoves(bookPath: string, fen: string) : Promise<Result<BookMove[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_book_moves", { bookPath, fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async memorySize() : Promise<number> {
     return await TAURI_INVOKE("memory_size");
 },
@@ -490,6 +498,7 @@ progressEvent: "progress-event"
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
+export type BookMove = { uci: string; san: string; weight: number; percentage: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
 export type DatabaseProgress = { id: string; progress: number }

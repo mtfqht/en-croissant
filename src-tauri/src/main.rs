@@ -26,6 +26,7 @@ use dashmap::DashMap;
 use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use game::GameManager;
+use polyglot_book_rs::PolyglotBook;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
 
 use log::LevelFilter;
@@ -37,7 +38,7 @@ use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
-    analyze_game, cancel_analysis, get_engine_config, get_engine_logs, kill_engine, kill_engines,
+    analyze_game, cancel_analysis, get_book_moves, get_engine_config, get_engine_logs, kill_engine, kill_engines,
     stop_engine,
 };
 use crate::db::{
@@ -93,6 +94,10 @@ pub struct AppState {
     auth: AuthState,
     game_manager: GameManager,
     progress_state: ProgressStore,
+    
+    // Cache for opening books to prevent loading from disk on every move
+    #[derivative(Default(value = "DashMap::new()"))]
+    pub book_cache: DashMap<String, Arc<PolyglotBook>>,
 }
 
 #[tauri::command]
@@ -117,6 +122,7 @@ fn main() {
             kill_engine,
             kill_engines,
             get_engine_logs,
+            get_book_moves,
             memory_size,
             get_puzzle,
             search_opening_name,

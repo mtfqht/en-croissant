@@ -11,7 +11,7 @@ use crate::error::Error;
 #[derive(Debug, Clone)]
 struct Opening {
     _eco: String,
-    name: String,
+    name: String, // سيحتوي على "Starting Position" أو "Empty Board" كمفاتيح للترجمة في الواجهة الأمامية
     setup: Setup,
     pgn: Option<String>,
 }
@@ -121,13 +121,13 @@ lazy_static! {
         let mut positions = vec![
             Opening {
                 _eco: "Extra".to_string(),
-                name: "Starting Position".to_string(),
+                name: "Starting Position".to_string(), // هذا الاسم يطابق مفتاح الترجمة تماماً في ملفات الـ JSON
                 setup: Setup::default(),
                 pgn: None,
             },
             Opening {
                 _eco: "Extra".to_string(),
-                name: "Empty Board".to_string(),
+                name: "Empty Board".to_string(), // يمكن إضافته أيضاً لملفات الترجمة كـ "Empty Board"
                 setup: Setup::empty(),
                 pgn: None,
             },

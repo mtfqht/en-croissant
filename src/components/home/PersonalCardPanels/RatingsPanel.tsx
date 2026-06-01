@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import dayjs from "dayjs";
 import type { PlayerGameInfo } from "@/bindings";
 import { getTimeControl } from "@/utils/timeControl";
 import DateRangeTabs, { DateRange } from "./DateRangeTabs";
@@ -70,7 +69,7 @@ function RatingsPanel({
           .filter(
             (game) => !timeControl || getTimeControl(website, game.time_control) === timeControl,
           )
-          .map((game) => dayjs(game.date, "YYYY.MM.DD").valueOf()),
+          .map((game) => new Date(game.date).getTime()),
       ]),
     ).sort((a, b) => a - b);
   }, [info.site_stats_data, website, account, timeControl]);
@@ -95,7 +94,7 @@ function RatingsPanel({
           (game) => !timeControl || getTimeControl(website!, game.time_control) === timeControl,
         )
         .filter((game) => {
-          const gameDate = dayjs(game.date, "YYYY.MM.DD").valueOf();
+          const gameDate = new Date(game.date).getTime();
           return (
             gameDate >= (dates[timeRange.start] || 0) && gameDate <= (dates[timeRange.end] || 0)
           );
@@ -109,7 +108,7 @@ function RatingsPanel({
     const ratingData = (() => {
       const map = new Map<number, { date: number; player_elo: number }>();
       for (const game of filteredGames) {
-        const date = dayjs(game.date, "YYYY.MM.DD").valueOf();
+        const date = new Date(game.date).getTime();
         if (!map.has(date) || map.get(date)!.player_elo < game.player_elo) {
           map.set(date, { date, player_elo: game.player_elo });
         }

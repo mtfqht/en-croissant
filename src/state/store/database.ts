@@ -19,7 +19,7 @@ export interface DatabaseViewStore {
     };
     tournaments: {
         query: TournamentQuery;
-        selectedTournament?: number;
+        selectedTournamet?: number;
         activeTab: "games" | "leaderboard";
     };
 
@@ -36,7 +36,7 @@ export interface DatabaseViewStore {
     setPlayersActiveTab: (value: DatabaseViewStore["players"]["activeTab"]) => void;
 
     setTournamentsQuery: (query: TournamentQuery) => void;
-    setTournamentsSelectedTournament: (tournament?: number) => void;
+    setTournamentsSelectedTournamet: (tournament?: number) => void;
     setTournamentsActiveTab: (value: DatabaseViewStore["tournaments"]["activeTab"]) => void;
 }
 
@@ -177,10 +177,10 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
                     }),
                 );
             },
-            setTournamentsSelectedTournament: (tournament?: number) => {
+            setTournamentsSelectedTournamet: (tournament?: number) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
-                        state.tournaments.selectedTournament = tournament;
+                        state.tournaments.selectedTournamet = tournament;
                     }),
                 );
             },

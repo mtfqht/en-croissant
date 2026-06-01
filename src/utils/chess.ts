@@ -565,6 +565,8 @@ export function getGameStats(root: TreeNode) {
             blackAccuracy: 0,
             whiteAnnotations,
             blackAnnotations,
+            totalWhiteMoves: 0,
+            totalBlackMoves: 0,
         };
     }
 
@@ -577,6 +579,7 @@ export function getGameStats(root: TreeNode) {
         white: [],
         black: [],
     };
+    
     let node = root;
     while (node.children.length > 0) {
         node = node.children[0];
@@ -589,6 +592,7 @@ export function getGameStats(root: TreeNode) {
                 }
             }
         }
+        
         const color = node.halfMoves % 2 === 1 ? "white" : "black";
         if (node.score) {
             cplosses[color].push(getCPLoss(prevScore.value, node.score.value, color));
@@ -609,7 +613,7 @@ export function getGameStats(root: TreeNode) {
         whiteAnnotations,
         blackAnnotations,
     };
-}
+    }
 
 export type PiecesCount = {
     p: number;

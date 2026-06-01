@@ -1,7 +1,8 @@
 import { Text } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
+import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
-import { DataTable } from "mantine-datatable";
+import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { memo, useEffect, useState } from "react";
 import type { NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
@@ -19,7 +20,45 @@ function GamesTable({
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
   const [page, setPage] = useState(1);
-  const filteredGames = games.slice((page - 1) * 20, page * 20);
+
+  // حالة الترتيب الافتراضية
+  const [sortStatus, setSortStatus] = useState<DataTableSortStatus<NormalizedGame>>({
+    columnAccessor: "date",
+    direction: "desc",
+  });
+
+  const [sortedGames, setSortedGames] = useState<NormalizedGame[]>([]);
+
+  // منطق الترتيب
+  useEffect(() => {
+    let sorted = [...games];
+    const { columnAccessor, direction } = sortStatus;
+
+    if (columnAccessor) {
+      sorted = sorted.sort((a, b) => {
+        let aVal = a[columnAccessor as keyof NormalizedGame];
+        let bVal = b[columnAccessor as keyof NormalizedGame];
+
+        // معالجة خاصة لترتيب التواريخ
+        if (columnAccessor === "date") {
+          aVal = aVal ? dayjs(aVal as string).unix() : 0;
+          bVal = bVal ? dayjs(bVal as string).unix() : 0;
+        }
+
+        if (aVal === bVal) return 0;
+        if (aVal === undefined || aVal === null) return direction === "asc" ? -1 : 1;
+        if (bVal === undefined || bVal === null) return direction === "asc" ? 1 : -1;
+
+        if (aVal < bVal) return direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    setSortedGames(sorted);
+  }, [games, sortStatus]);
+
+  // تقسيم المباريات المرتبة إلى صفحات
+  const filteredGames = sortedGames.slice((page - 1) * 20, page * 20);
 
   useEffect(() => {
     setPage(1);
@@ -28,6 +67,8 @@ function GamesTable({
   const navigate = useNavigate();
   return (
     <DataTable
+      sortStatus={sortStatus}
+      onSortStatusChange={setSortStatus}
       withTableBorder
       highlightOnHover
       records={filteredGames}
@@ -60,6 +101,7 @@ function GamesTable({
       columns={[
         {
           accessor: "white",
+          sortable: true,
           render: ({ white, white_elo }) => (
             <div>
               <Text size="sm" fw={500}>
@@ -73,6 +115,7 @@ function GamesTable({
         },
         {
           accessor: "black",
+          sortable: true,
           render: ({ black, black_elo }) => (
             <div>
               <Text size="sm" fw={500}>
@@ -84,9 +127,9 @@ function GamesTable({
             </div>
           ),
         },
-        { accessor: "date" },
-        { accessor: "result" },
-        { accessor: "ply_count" },
+        { accessor: "date", sortable: true },
+        { accessor: "result", sortable: true },
+        { accessor: "ply_count", sortable: true },
       ]}
       noRecordsText="No games found"
     />

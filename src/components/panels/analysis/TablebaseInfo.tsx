@@ -136,11 +136,32 @@ function OutcomeBadge({
     : match(category)
         .with("draw", () => t("Board.Analysis.Tablebase.Draw"))
         .with("unknown", () => t("Common.Unknown"))
-        .otherwise(() => (dtm ? `DTM ${Math.abs(dtm)}` : `DTZ ${dtz}`));
+        .otherwise(() => {
+          if (dtm !== undefined && dtm !== null) {
+            // تحويل أنصاف النقلات إلى نقلات كاملة
+            const movesToMate = Math.ceil(Math.abs(dtm) / 2);
+            // استخدم "M" ليكون أقصر ويتوافق مع أسلوب Lichess ولا يتم قصه في الواجهة
+            return `M${movesToMate}`; 
+            // ملاحظة: إذا كنت مصراً على عرض كلمة DTM، يمكنك استخدام `DTM ${movesToMate}` 
+            // لكن قد تحتاج لتغيير عدد الأعمدة في SimpleGrid إلى 2 لتفادي القص
+          }
+          if (dtz !== undefined && dtz !== null) {
+            return `DTZ ${dtz}`;
+          }
+          return "";
+        });
 
   return (
     <Group p="xs">
-      <Badge autoContrast color={color}>
+      <Badge 
+        autoContrast 
+        color={color} 
+        style={{ 
+          textTransform: "none", 
+          flexShrink: 0, // هذه الخاصية تمنع الـ Badge من الانكماش
+          minWidth: "max-content" // لضمان احتفاظه بعرضه الطبيعي
+        }}
+      >
         {label}
       </Badge>
       {["blessed-loss", "cursed-win", "maybe-win", "maybe-loss"].includes(category) && wins && (
@@ -151,5 +172,4 @@ function OutcomeBadge({
     </Group>
   );
 }
-
 export default TablebaseInfo;

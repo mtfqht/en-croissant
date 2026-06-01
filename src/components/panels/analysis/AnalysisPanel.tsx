@@ -2,6 +2,7 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
   ActionIcon,
+  Badge,
   Button,
   Card,
   Group,
@@ -20,15 +21,19 @@ import {
   IconSettings,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { invoke } from "@tauri-apps/api/core";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, startTransition, useContext, useDeferredValue, useMemo, useOptimistic } from "react";
 import { useTranslation } from "react-i18next";
+import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   activeTabAtom,
   allEnabledAtom,
+  analysisBookEnabledAtom,
+  analysisBookPathAtom,
   currentAnalysisTabAtom,
   currentExpandedEnginesAtom,
   enableAllAtom,
@@ -45,6 +50,69 @@ import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
+import classes from "./AnalysisPanel.module.css";
+
+export interface BookMove {
+  uci: string;
+  san: string;
+  weight: number;
+  percentage: number;
+}
+
+function BookAnalysisSection() {
+  const { t } = useTranslation();
+  const bookEnabled = useAtomValue(analysisBookEnabledAtom);
+  const bookPath = useAtomValue(analysisBookPathAtom);
+  const store = useContext(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
+  const makeMove = useStore(store, (s) => s.makeMove);
+  const currentNode = useStore(store, (s) => s.currentNode());
+
+  const { data: bookMoves, isLoading } = useSWRImmutable<BookMove[]>(
+    bookEnabled && bookPath ? ["book-moves", bookPath, fen] : null,
+    async ([, path, currentFen]) => {
+      return await invoke("get_book_moves", { bookPath: path, fen: currentFen });
+    }
+  );
+
+  if (!bookEnabled || !bookPath) return null;
+
+  return (
+    <Paper withBorder p="xs" mb="sm">
+      <Text fw="bold" fz="sm" mb="xs">{t("Board.Analysis.OpeningBook", "Opening Book")}</Text>
+      {isLoading && <Text fz="xs" c="dimmed">{t("Common.Loading", "Loading...")}</Text>}
+      {!isLoading && (!bookMoves || bookMoves.length === 0) && (
+        <Text fz="xs" c="dimmed">{t("Board.Analysis.NoBookMoves", "No book moves found in this position.")}</Text>
+      )}
+      {!isLoading && bookMoves && bookMoves.length > 0 && (
+        <Stack gap={4}>
+          {bookMoves.map((move) => {
+            const isPlayed = currentNode.children.some(c => c.san === move.san);
+            return (
+              <Group 
+                key={move.uci} 
+                justify="space-between" 
+                wrap="nowrap"
+                style={{ cursor: "pointer", padding: "4px", borderRadius: "4px" }}
+                className={classes.label}
+                onClick={() => makeMove({ payload: move.san })}
+              >
+                <Group gap="xs">
+                  <Text fz="sm" fw={500}>{move.san}</Text>
+                  {isPlayed && <Badge size="xs" variant="light" color="blue">{t("Board.Analysis.Played", "Played")}</Badge>}
+                </Group>
+                <Group gap="xs">
+                   <Text fz="xs" c="dimmed">{move.percentage.toFixed(1)}%</Text>
+                   <Text fz="xs" c="dimmed">({move.weight})</Text>
+                </Group>
+              </Group>
+            );
+          })}
+        </Stack>
+      )}
+    </Paper>
+  );
+}
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -128,6 +196,7 @@ function AnalysisPanel() {
                   <Space h="sm" />
                 </>
               )}
+            <BookAnalysisSection />
             {loadedEngines.length > 1 && (
               <Paper withBorder p="xs" flex={1}>
                 <Group w="100%" gap="xs" wrap="nowrap">

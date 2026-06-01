@@ -184,7 +184,6 @@ export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-on-hover", true);
-export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
 export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
@@ -207,7 +206,7 @@ export const soundVolumeAtom = atomWithStorage<number>("sound-volume", 0.8, unde
     getOnInit: true,
 });
 
-export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
+export const pieceSetAtom = atomWithStorage<string>("piece-set", "cburnett");
 export const boardImageAtom = atomWithStorage<string>("board-image", "gray.svg");
 export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-color", "blue");
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
@@ -693,3 +692,7 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
         set(atom, { ...get(atom), enabled: value });
     }
 });
+
+// Polyglot Opening Book
+export const analysisBookPathAtom = atomWithStorage<string | null>("analysis-book-path", null);
+export const analysisBookEnabledAtom = atomWithStorage<boolean>("analysis-book-enabled", false);

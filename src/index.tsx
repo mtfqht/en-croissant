@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { initReactI18next } from "react-i18next";
 import App from "./App";
 
+import ar_SA from "./translation/ar-SA.json";
 import be_BY from "./translation/be-BY.json";
 import de_DE from "./translation/de-DE.json";
 import en_GB from "./translation/en-GB.json";
@@ -45,6 +46,7 @@ i18n
       "ko-KR": ko_KR,
       "zh-TW": zh_TW,
       "de-DE": de_DE,
+      "ar-SA": ar_SA,
     },
     detection: {
       order: ["localStorage"],
@@ -53,6 +55,18 @@ i18n
     fallbackLng: "en-US",
     returnEmptyString: false,
   });
+
+const updateLayoutDirection = (lng: string) => {
+  const isRtl = lng.startsWith("ar");
+  document.documentElement.dir = isRtl ? "rtl" : "ltr";
+  document.documentElement.lang = lng;
+};
+
+updateLayoutDirection(i18n.resolvedLanguage || i18n.language || "en-US");
+
+i18n.on("languageChanged", (lng) => {
+  updateLayoutDirection(lng);
+});
 
 dayjs.extend(customParseFormat);
 

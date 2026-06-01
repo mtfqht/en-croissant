@@ -2,12 +2,15 @@ import {
   ActionIcon,
   Autocomplete,
   createTheme,
+  DirectionProvider,
   Input,
   localStorageColorSchemeManager,
   MantineProvider,
   Textarea,
   TextInput,
+  useDirection,
 } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
@@ -204,12 +207,27 @@ function useAppStartup() {
   }, [setTabs, setActiveTab]);
 }
 
+// مكوّن مزامنة الاتجاه بين i18next و Mantine Provider
+function I18nDirectionSync() {
+  const { i18n } = useTranslation();
+  const { setDirection } = useDirection();
+
+  useEffect(() => {
+    setDirection(i18n.language?.startsWith("ar") ? "rtl" : "ltr");
+  }, [i18n.language, setDirection]);
+
+  return null;
+}
+
 export default function App() {
   const primaryColor = useAtomValue(primaryColorAtom);
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
   const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
+
+  const { i18n } = useTranslation();
+  const initialDir: "ltr" | "rtl" = i18n.language?.startsWith("ar") ? "rtl" : "ltr";
 
   useAppStartup();
 
@@ -274,19 +292,22 @@ export default function App() {
   });
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+    <DirectionProvider initialDirection={initialDir} detectDirection={false}>
+      <DndProvider backend={HTML5Backend}>
+        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
 
-      <MantineProvider
-        colorSchemeManager={colorSchemeManager}
-        defaultColorScheme="dark"
-        theme={theme}
-      >
-        <ContextMenuProvider>
-          <Notifications />
-          <RouterProvider router={router} />
-        </ContextMenuProvider>
-      </MantineProvider>
-    </DndProvider>
+        <MantineProvider
+          colorSchemeManager={colorSchemeManager}
+          defaultColorScheme="dark"
+          theme={theme}
+        >
+          <I18nDirectionSync />
+          <ContextMenuProvider>
+            <Notifications />
+            <RouterProvider router={router} />
+          </ContextMenuProvider>
+        </MantineProvider>
+      </DndProvider>
+    </DirectionProvider>
   );
 }

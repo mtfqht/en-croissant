@@ -18,6 +18,7 @@ export default defineConfig({
         "ko-KR",
         "zh-TW",
         "de-DE",
+        "ar-SA", // إضافة اللغة العربية هنا
     ],
     extract: {
         input: ["src/**/*.{ts,tsx}"],

@@ -12,6 +12,7 @@ use derivative::Derivative;
 use governor::{Quota, RateLimiter};
 use log::{info, warn};
 use nonzero_ext::*;
+use polyglot_book_rs::PolyglotBook;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::SanPlus, uci::UciMove, ByColor, CastlingMode, Chess, Color, EnPassantMode,
@@ -707,6 +708,123 @@ fn naive_eval(pos: &Chess) -> i32 {
         .unwrap_or(i32::MIN)
 }
 
+#[derive(Type, Default, Serialize, Debug)]
+pub struct EngineConfig {
+    pub name: String,
+    pub options: Vec<UciOptionConfig>,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
+    let mut base = BaseEngine::spawn(path).await?;
+
+    base.send("uci").await?;
+
+    let mut config = EngineConfig::default();
+
+    let reader = base.reader_mut().ok_or(Error::EngineDisconnected)?;
+    while let Some(line) = reader.next_line().await? {
+        if let UciMessage::Id {
+            name: Some(name),
+            author: _,
+        } = parse_one(&line)
+        {
+            config.name = name;
+        }
+        if let UciMessage::Option(opt) = parse_one(&line) {
+            config.options.push(opt);
+        }
+        if let UciMessage::UciOk = parse_one(&line) {
+            break;
+        }
+    }
+    println!("{:?}", config);
+    base.quit().await?;
+    Ok(config)
+}
+
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BookMove {
+    pub uci: String,
+    pub san: String,
+    pub weight: u16,
+    pub percentage: f32,
+}
+
+fn normalize_polyglot_uci(uci: &str) -> String {
+    match uci {
+        "e1h1" => "e1g1".to_string(),
+        "e1a1" => "e1c1".to_string(),
+        "e8h8" => "e8g8".to_string(),
+        "e8a8" => "e8c8".to_string(),
+        _ => uci.to_string(),
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_book_moves(
+    book_path: String,
+    fen: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<BookMove>, Error> {
+    // 1. التحقق إذا كان البوك مخزناً في الكاش المسبق (للاستجابة الفورية)
+    let book = if let Some(cached_book) = state.book_cache.get(&book_path) {
+        cached_book.clone()
+    } else {
+        let path_clone = book_path.clone();
+        
+        // 2. نقل المعالجة الثقيلة للملف إلى Thread خلفي لمنع تجميد الواجهة (Non-blocking I/O)
+        let arc_book = tokio::task::spawn_blocking(move || {
+            let loaded_book = PolyglotBook::load(&path_clone).map_err(|e| Error::Io(Box::new(e)))?;
+            Ok::<Arc<PolyglotBook>, Error>(Arc::new(loaded_book))
+        })
+        .await
+        .map_err(|e| Error::Io(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))))??;
+
+        // 3. تخزين البوك المحمل في الكاش للاستخدام المستقبلي
+        state
+            .book_cache
+            .insert(book_path.clone(), arc_book.clone());
+        arc_book
+    };
+
+    let entries = book.get_all_moves_from_fen(&fen);
+    if entries.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let total_weight: u32 = entries.iter().map(|e| e.weight as u32).sum();
+    let mut pos = crate::engine::parse_fen_to_position(&fen)?;
+    let mut result = Vec::new();
+
+    for entry in entries {
+        let uci_str = normalize_polyglot_uci(&entry.move_string);
+        if let Ok(uci_move) = UciMove::from_ascii(uci_str.as_bytes()) {
+            if let Ok(m) = uci_move.to_move(&pos) {
+                let san = SanPlus::from_move_and_play_unchecked(&mut pos.clone(), &m).to_string();
+                let percentage = if total_weight > 0 {
+                    (entry.weight as f32 / total_weight as f32) * 100.0
+                } else {
+                    0.0
+                };
+
+                result.push(BookMove {
+                    uci: uci_str,
+                    san,
+                    weight: entry.weight,
+                    percentage,
+                });
+            }
+        }
+    }
+
+    result.sort_by(|a, b| b.weight.cmp(&a.weight));
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use shakmaty::FromSetup;
@@ -770,40 +888,4 @@ mod tests {
         let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 1 14");
         assert_eq!(naive_eval(&position), 0);
     }
-}
-
-#[derive(Type, Default, Serialize, Debug)]
-pub struct EngineConfig {
-    pub name: String,
-    pub options: Vec<UciOptionConfig>,
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
-    let mut base = BaseEngine::spawn(path).await?;
-
-    base.send("uci").await?;
-
-    let mut config = EngineConfig::default();
-
-    let reader = base.reader_mut().ok_or(Error::EngineDisconnected)?;
-    while let Some(line) = reader.next_line().await? {
-        if let UciMessage::Id {
-            name: Some(name),
-            author: _,
-        } = parse_one(&line)
-        {
-            config.name = name;
-        }
-        if let UciMessage::Option(opt) = parse_one(&line) {
-            config.options.push(opt);
-        }
-        if let UciMessage::UciOk = parse_one(&line) {
-            break;
-        }
-    }
-    println!("{:?}", config);
-    base.quit().await?;
-    Ok(config)
 }

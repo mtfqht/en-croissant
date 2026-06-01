@@ -3,8 +3,10 @@ import { useContext, useEffect, useState } from "react";
 import { useStore } from "zustand";
 import { getOpening } from "@/utils/chess";
 import { TreeStateContext } from "./TreeStateContext";
+import { useTranslation } from "react-i18next";
 
 function OpeningName() {
+  const { t } = useTranslation();
   const [openingName, setOpeningName] = useState("");
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
@@ -16,7 +18,7 @@ function OpeningName() {
 
   return (
     <Text style={{ userSelect: "text" }} fz="sm">
-      {openingName}
+      {t(openingName)} {}
     </Text>
   );
 }

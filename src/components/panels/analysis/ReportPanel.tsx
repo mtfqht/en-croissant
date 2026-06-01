@@ -1,4 +1,4 @@
-import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
+import { Divider, Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
@@ -189,4 +189,5 @@ function AccuracyCard({ color, cpl, accuracy }: { color: string; cpl: number; ac
     </Paper>
   );
 }
+
 export default ReportPanel;

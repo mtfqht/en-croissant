@@ -42,7 +42,6 @@ import {
 import type { ChessgroundRef } from "@/chessground/Chessground";
 import {
   activeTabAtom,
-  flipBoardAfterMoveAtom,
   currentGameIdAtom,
   currentGameStateAtom,
   currentPlayersAtom,
@@ -128,7 +127,6 @@ function BoardGame() {
   const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
-  const autoFlipBoard = useAtomValue(flipBoardAfterMoveAtom);
 
   const boardRef = useRef(null);
   const cgRef = useRef<ChessgroundRef>(null);
@@ -151,15 +149,6 @@ function BoardGame() {
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
     (players.black.type === "human" && players.white.type === "engine");
-
-  const orientation = headers.orientation || "white";
-  const toggleOrientation = () => {
-    setHeaders({
-      ...headers,
-      fen: root.fen,
-      orientation: orientation === "black" ? "white" : "black",
-    });
-  };
 
   const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
@@ -404,16 +393,14 @@ function BoardGame() {
   const handleHumanMove = useCallback(
     async (uci: string) => {
       if (!gameId || gameState !== "playing") return;
+
       try {
         const result = await commands.makeGameMove(gameId, uci);
-        if (!isPlayerVsEngine && autoFlipBoard) {
-          toggleOrientation();
-        }
       } catch (err) {
         console.error("Failed to make move:", err);
       }
     },
-    [gameId, gameState, toggleOrientation],
+    [gameId, gameState],
   );
 
   const pendingMovesRef = useRef<{ uci: string; clock: number | null }[] | null>(null);

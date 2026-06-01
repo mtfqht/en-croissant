@@ -34,6 +34,8 @@ import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  analysisBookPathAtom,
+  analysisBookEnabledAtom,
   autoPromoteAtom,
   autoSaveAtom,
   enableBoardScrollAtom,
@@ -47,7 +49,6 @@ import {
   nativeBarAtom,
   practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
-  flipBoardAfterMoveAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
@@ -321,14 +322,6 @@ export default function Page() {
         render: () => <SettingsSwitch atom={previewBoardOnHoverAtom} />,
       },
       {
-        id: "flip-board-after-move",
-        category: "board",
-        title: t("Settings.FlipBoardAfterMove"),
-        description: t("Settings.FlipBoardAfterMove.Desc"),
-        keywords: ["flip", "board", "move"],
-        render: () => <SettingsSwitch atom={flipBoardAfterMoveAtom} />,
-      },
-      {
         id: "scroll-moves",
         category: "board",
         title: t("Settings.ScrollThroughMoves"),
@@ -395,33 +388,40 @@ export default function Page() {
         title: t("Settings.Appearance.Language"),
         description: t("Settings.Appearance.Language.Desc"),
         keywords: ["language", "locale", "translation"],
-        render: () => (
-          <Select
-            allowDeselect={false}
-            data={[
-              { value: "be_BY", label: "Belarusian" },
-              { value: "zh_CN", label: "Chinese (Simplified)" },
-              { value: "zh_TW", label: "Chinese (Traditional)" },
-              { value: "en_GB", label: "English (UK)" },
-              { value: "en_US", label: "English (US)" },
-              { value: "fr_FR", label: "Français" },
-              { value: "pl_PL", label: "Polish" },
-              { value: "nb_NO", label: "Norsk bokmål" },
-              { value: "pt_PT", label: "Portuguese" },
-              { value: "ru_RU", label: "Russian" },
-              { value: "es_ES", label: "Spanish" },
-              { value: "it_IT", label: "Italian" },
-              { value: "uk_UA", label: "Ukrainian" },
-              { value: "tr_TR", label: "Türkçe" },
-              { value: "ko_KR", label: "한국어" },
-              { value: "de_DE", label: "Deutsch" },
-            ]}
-            value={i18n.language.replace("-", "_")}
-            onChange={(val) => {
-              i18n.changeLanguage(val?.replace("_", "-") || "en-US");
-            }}
-          />
-        ),
+        render: () => {
+          // فحص ذكي: إذا بدأت كود اللغة بـ ar يتم مطابقتها مع ar-SA فوراً
+          const activeLanguage = i18n.language;
+          const selectValue = activeLanguage.startsWith("ar") ? "ar_SA" : activeLanguage.replace("-", "_");
+
+          return (
+            <Select
+              allowDeselect={false}
+              data={[
+                { value: "ar_SA", label: "العربية" },
+                { value: "be_BY", label: "Belarusian" },
+                { value: "zh_CN", label: "Chinese (Simplified)" },
+                { value: "zh_TW", label: "Chinese (Traditional)" },
+                { value: "en_GB", label: "English (UK)" },
+                { value: "en_US", label: "English (US)" },
+                { value: "fr_FR", label: "Français" },
+                { value: "pl_PL", label: "Polish" },
+                { value: "nb_NO", label: "Norsk bokmål" },
+                { value: "pt_PT", label: "Portuguese" },
+                { value: "ru_RU", label: "Russian" },
+                { value: "es_ES", label: "Spanish" },
+                { value: "it_IT", label: "Italian" },
+                { value: "uk_UA", label: "Ukrainian" },
+                { value: "tr_TR", label: "Türkçe" },
+                { value: "ko_KR", label: "한국어" },
+                { value: "de_DE", label: "Deutsch" },
+              ]}
+              value={selectValue}
+              onChange={(val) => {
+                i18n.changeLanguage(val?.replace("_", "-") || "en-US");
+              }}
+            />
+          );
+        },
       },
       ...(import.meta.env.VITE_PLATFORM === "win32" || import.meta.env.VITE_PLATFORM === "linux"
         ? [
@@ -516,6 +516,38 @@ export default function Page() {
             onChange={(val) => setPracticeAutoDifficulty(val as "none" | "1" | "2" | "3" | "4")}
           />
         ),
+      },
+      {
+        id: "analysis-book-enabled",
+        category: "repertoire",
+        title: t("Settings.Repertoire.AnalysisBookEnabled", "Enable Opening Book in Analysis"),
+        description: t("Settings.Repertoire.AnalysisBookEnabled.Desc", "Show moves from a local polyglot (.bin) book in the analysis panel"),
+        keywords: ["book", "polyglot", "analysis", "opening"],
+        render: () => <SettingsSwitch atom={analysisBookEnabledAtom} />,
+      },
+      {
+        id: "analysis-book-path",
+        category: "repertoire",
+        title: t("Settings.Repertoire.AnalysisBookPath", "Opening Book Path (.bin)"),
+        description: t("Settings.Repertoire.AnalysisBookPath.Desc", "Select the polyglot book file to use"),
+        keywords: ["book", "polyglot", "path", "opening"],
+        render: () => {
+          const [path, setPath] = useAtom(analysisBookPathAtom);
+          return (
+            <FileInput
+              onClick={async () => {
+                const selected = await open({
+                  multiple: false,
+                  filters: [{ name: "Polyglot Book", extensions: ["bin"] }],
+                });
+                if (typeof selected === "string") {
+                  setPath(selected);
+                }
+              }}
+              filename={path || null}
+            />
+          );
+        }
       },
       // Sound settings
       {
@@ -922,7 +954,7 @@ export default function Page() {
                       {Object.entries(keyMap).map(([action, keybind]) => {
                         return (
                           <Table.Tr key={keybind.name}>
-                            <Table.Td>{keybind.name}</Table.Td>
+                            <Table.Td>{t(keybind.name)}</Table.Td>
                             <Table.Td>
                               <KeybindInput action={action} keybind={keybind} />
                             </Table.Td>

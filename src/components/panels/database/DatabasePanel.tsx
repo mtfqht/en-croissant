@@ -55,6 +55,7 @@ type DBType =
       token: string;
     };
 
+// ======== الشريحة العلوية (ثابت - لا تعدل عليه) ========
 export type LocalOptions = {
   path: string | null;
   fen: string;
@@ -63,12 +64,20 @@ export type LocalOptions = {
   color: "white" | "black";
   start_date?: string;
   end_date?: string;
-  result: "any" | "whitewon" | "draw" | "blackwon";
-};
+// =======================================================
 
+// ======== الحشوة (الكود الجديد - استبدل السطر الخاص بـ result بهذه الأسطر) ========
+  result: "any" | "whitewon" | "draw" | "blackwon";
+  sort?: "date" | "ply_count" | "white" | "black" | "result";
+  direction?: "asc" | "desc";
+};
+// =======================================================
+
+// ======== الشريحة السفلية (ثابت - لا تعدل عليه) ========
 function sortOpenings(openings: Opening[]) {
   return openings.sort((a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white));
 }
+// =======================================================
 
 async function fetchOpening(db: DBType, tab: string) {
   return match(db)

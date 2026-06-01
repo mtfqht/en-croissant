@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { soundVolumeAtom } from "@/state/atoms";
 import { playSound } from "@/utils/sound";
 
+const BASE_MARKS = [
+  { value: 20, label: "20%" },
+  { value: 50, label: "50%" },
+  { value: 80, label: "80%" },
+];
+
 export default function VolumeSlider() {
   const [volume, setVolume] = useAtom(soundVolumeAtom);
   const [tempVolume, setTempVolume] = useState(volume * 100);
@@ -16,18 +22,12 @@ export default function VolumeSlider() {
     <Slider
       min={0}
       max={100}
-      marks={[
-        { value: 20, label: "20%" },
-        { value: 50, label: "50%" },
-        { value: 80, label: "80%" },
-      ]}
+      marks={BASE_MARKS}
       w="15rem"
       value={tempVolume}
-      onChange={(value) => {
-        setTempVolume(value as number);
-      }}
-      onChangeEnd={(value) => {
-        setVolume(value / 100);
+      onChange={(raw) => setTempVolume(raw)}
+      onChangeEnd={(raw) => {
+        setVolume(raw / 100);
         playSound(false, false);
       }}
     />
