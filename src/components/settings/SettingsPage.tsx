@@ -151,6 +151,25 @@ function TelemetrySwitch() {
   );
 }
 
+// ✅ المكون الجديد لعزل حالة (Hook) الخاصة بمسار الكتاب عن صفحة الإعدادات
+function AnalysisBookPathSetting() {
+  const [path, setPath] = useAtom(analysisBookPathAtom);
+  return (
+    <FileInput
+      onClick={async () => {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: "Polyglot Book", extensions: ["bin"] }],
+        });
+        if (typeof selected === "string") {
+          setPath(selected);
+        }
+      }}
+      filename={path || null}
+    />
+  );
+}
+
 export default function Page() {
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -389,7 +408,6 @@ export default function Page() {
         description: t("Settings.Appearance.Language.Desc"),
         keywords: ["language", "locale", "translation"],
         render: () => {
-          // فحص ذكي: إذا بدأت كود اللغة بـ ar يتم مطابقتها مع ar-SA فوراً
           const activeLanguage = i18n.language;
           const selectValue = activeLanguage.startsWith("ar") ? "ar_SA" : activeLanguage.replace("-", "_");
 
@@ -531,23 +549,7 @@ export default function Page() {
         title: t("Settings.Repertoire.AnalysisBookPath", "Opening Book Path (.bin)"),
         description: t("Settings.Repertoire.AnalysisBookPath.Desc", "Select the polyglot book file to use"),
         keywords: ["book", "polyglot", "path", "opening"],
-        render: () => {
-          const [path, setPath] = useAtom(analysisBookPathAtom);
-          return (
-            <FileInput
-              onClick={async () => {
-                const selected = await open({
-                  multiple: false,
-                  filters: [{ name: "Polyglot Book", extensions: ["bin"] }],
-                });
-                if (typeof selected === "string") {
-                  setPath(selected);
-                }
-              }}
-              filename={path || null}
-            />
-          );
-        }
+        render: () => <AnalysisBookPathSetting />
       },
       // Sound settings
       {

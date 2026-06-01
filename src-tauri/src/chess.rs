@@ -797,7 +797,7 @@ pub async fn get_book_moves(
     }
 
     let total_weight: u32 = entries.iter().map(|e| e.weight as u32).sum();
-    let mut pos = crate::engine::parse_fen_to_position(&fen)?;
+    let pos = crate::engine::parse_fen_to_position(&fen)?;
     let mut result = Vec::new();
 
     for entry in entries {
